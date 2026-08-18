@@ -1,0 +1,2 @@
+import Link from 'next/link';
+export function Nav(){return <nav className="bottom-nav"><Link className="navlink active" href="/dashboard">⌂<br/>Today</Link><Link className="navlink" href="/library">⊕<br/>Library</Link><Link className="navlink" href="/analytics">▦<br/>Progress</Link><Link className="navlink" href="/palettes">✦<br/>Rewards</Link><Link className="navlink" href="/settings">☻<br/>Profile</Link></nav>}

@@ -1,0 +1,161 @@
+generator client {
+ provider = "prisma-client-js"
+}
+datasource db {
+ provider = "postgresql"
+ url = env("DATABASE_URL")
+ directUrl = env("DIRECT_URL")
+}
+
+enum Category {
+ HEALTH
+ MENTAL
+ SELF_CARE
+ NUTRITION
+}
+enum TaskType {
+ STATIC
+ PROGRESSIVE
+}
+enum Unit {
+ REPS
+ MINUTES
+ KM
+ PAGES
+ CUSTOM
+}
+enum Difficulty {
+ EASY
+ MEDIUM
+ HARD
+}
+enum Rarity {
+ COMMON
+ RARE
+ LEGENDARY
+ SEASONAL
+}
+
+model User {
+ id String @id @default(cuid())
+ email String @unique
+ passwordHash String
+ displayName String
+ timezone String @default("UTC")
+ level Int @default(1)
+ totalExp Int @default(0)
+ lifetimeExp Int @default(0)
+ prestigeCount Int @default(0)
+ activePaletteId String?
+ darkMode Boolean @default(false)
+ leaderboardOptIn Boolean @default(false)
+ leaderboardNickname String?
+ shareSlug String @unique @default(cuid())
+ publicProfile Boolean @default(false)
+ expVaultBalance Int @default(0)
+ lastSeenAt DateTime @default(now())
+ createdAt DateTime @default(now())
+ tasks UserTask[]
+ logs DailyLog[]
+ palettes UserPalette[]
+ badges UserBadge[]
+ activePalette Palette? @relation("activePalette",fields:[activePaletteId],references:[id])
+}
+model Task {
+ id String @id @default(cuid())
+ category Category
+ name String
+ description String
+ icon String
+ type TaskType
+ baseExp Int
+ baseTarget Int?
+ scalingFactor Float?
+ unit Unit?
+ difficultyTag Difficulty
+ whyThisHabit String
+ isStarterTask Boolean @default(false)
+ userTasks UserTask[]
+ logs DailyLog[]
+ stackTasks HabitStackTask[]
+}
+model UserTask {
+ id String @id @default(cuid())
+ userId String
+ taskId String
+ addedAt DateTime @default(now())
+ isPaused Boolean @default(false)
+ personalTargetOverride Int?
+ iconOverride String?
+ unitOverride Unit?
+ currentTarget Int?
+ consecutiveMisses Int @default(0)
+ targetRegressionLog Json @default("[]")
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+ task Task @relation(fields:[taskId],references:[id],onDelete:Cascade)
+ @@unique([userId,taskId])
+}
+model DailyLog {
+ id String @id @default(cuid())
+ userId String
+ taskId String
+ date DateTime
+ expEarned Int
+ targetAtCompletion Int?
+ note String?
+ createdAt DateTime @default(now())
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+ task Task @relation(fields:[taskId],references:[id],onDelete:Cascade)
+ @@unique([userId,taskId,date])
+}
+model Palette {
+ id String @id @default(cuid())
+ order Int @unique
+ name String
+ rarity Rarity
+ colors Json
+ isSeasonal Boolean @default(false)
+ seasonStart DateTime?
+ seasonEnd DateTime?
+ unlockLevel Int?
+ requiresPrestige Boolean @default(false)
+ users UserPalette[]
+ activeUsers User[] @relation("activePalette")
+}
+model UserPalette {
+ userId String
+ paletteId String
+ unlockedAt DateTime @default(now())
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+ palette Palette @relation(fields:[paletteId],references:[id],onDelete:Cascade)
+ @@id([userId,paletteId])
+}
+model Badge {
+ id String @id @default(cuid())
+ key String @unique
+ name String
+ description String
+ icon String
+ users UserBadge[]
+}
+model UserBadge {
+ userId String
+ badgeId String
+ earnedAt DateTime @default(now())
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+ badge Badge @relation(fields:[badgeId],references:[id],onDelete:Cascade)
+ @@id([userId,badgeId])
+}
+model HabitStack {
+ id String @id @default(cuid())
+ name String
+ description String
+ tasks HabitStackTask[]
+}
+model HabitStackTask {
+ stackId String
+ taskId String
+ stack HabitStack @relation(fields:[stackId],references:[id],onDelete:Cascade)
+ task Task @relation(fields:[taskId],references:[id],onDelete:Cascade)
+ @@id([stackId,taskId])
+}

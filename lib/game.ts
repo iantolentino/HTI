@@ -1,0 +1,13 @@
+export type Category='HEALTH'|'MENTAL'|'SELF_CARE'|'NUTRITION';
+export const expToNextLevel=(level:number)=>Math.ceil(100*Math.pow(level,1.15));
+export const levelTitle=(level:number)=>level<5?'Novice':level<10?'Disciplined':level<15?'Focused':level<20?'Ascended':level<30?'Champion':'Legend';
+export const progressiveTarget=(base:number,level:number,scaling:number,override?:number|null)=>override??(base+Math.floor(level*scaling));
+export const progressiveExp=(base:number,target:number)=>base+Math.floor(target*.5);
+export const regressTarget=(current:number,base:number)=>Math.max(base,Math.floor(current*.82));
+export const staticDiminishedExp=(base:number,staticInCategory:number)=>Math.floor(base*Math.max(.5,1-(Math.max(0,staticInCategory-1)*.1)));
+export const comboBonus=(dayExp:number,allDone:boolean)=>allDone?Math.floor(dayExp*.2):0;
+export const vaultDeposit=(today:number,average:number,cap:number)=>average>0&&today>average*1.25?Math.min(cap,Math.floor(today-average)):0;
+export const vaultBoost=(balance:number,underperforming:boolean)=>underperforming?Math.min(balance,Math.max(1,Math.floor(balance*.25))):0;
+export const isoDay=(date:Date,timeZone:string)=>{const parts=new Intl.DateTimeFormat('en-US',{timeZone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(date);const value=(type:string)=>parts.find(p=>p.type===type)?.value??'';return `${value('year')}-${value('month')}-${value('day')}`};
+export const todayDate=(timeZone:string)=>new Date(`${isoDay(new Date(),timeZone)}T00:00:00.000Z`);
+export const streakFromDates=(dates:string[],today:string,grace:boolean)=>{const set=new Set(dates);let n=0;let d=new Date(`${today}T00:00:00Z`);while(set.has(d.toISOString().slice(0,10))){n++;d.setUTCDate(d.getUTCDate()-1)} return grace?Math.max(n,0):n};
