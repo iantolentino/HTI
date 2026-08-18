@@ -21,6 +21,7 @@ The code-level checks below passed after this audit. Full persisted user-journey
 - `npm run lint` — passed with no ESLint warnings or errors.
 - `npm run test` — passed (23 Vitest tests: game formulas, streak logic, onboarding and core API route validation, and React components).
 - `npm run build` — passed (Next.js production build, strict TypeScript checking, and static generation).
+- `prisma validate` — passed against the Prisma schema with a non-production placeholder connection string; the migration SQL also diffs cleanly from an empty schema.
 - `npm run test:e2e` — the mobile landing smoke journey passed. The persisted registration journey is intentionally skipped unless `DATABASE_URL` points to an isolated Neon test database.
 - The expanded persisted mobile journey is deliberately opt-in: run `E2E_RUN=1` with `E2E_DATABASE_URL` (and, when required, `E2E_DIRECT_URL`) for an isolated seeded Neon branch. It covers registration, onboarding effects, tap/swipe completions, anti-spam feedback, Library filtering/customization, exports, theme persistence, leaderboard opt-in, public-profile privacy, login persistence, and duplicate registration.
 - Playwright configuration uses an isolated port (`3100`) so local E2E runs do not collide with another dev server. Configure an isolated Neon database and `NEXTAUTH_SECRET` before enabling the persisted registration/login flow in CI.
