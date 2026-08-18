@@ -1,2 +1,18 @@
+'use client';
 import Link from 'next/link';
-export function Nav(){return <nav className="bottom-nav"><Link className="navlink active" href="/dashboard">⌂<br/>Today</Link><Link className="navlink" href="/library">⊕<br/>Library</Link><Link className="navlink" href="/analytics">▦<br/>Progress</Link><Link className="navlink" href="/palettes">✦<br/>Rewards</Link><Link className="navlink" href="/settings">☻<br/>Profile</Link></nav>}
+import { usePathname } from 'next/navigation';
+import { ChartNoAxesCombined, Home, LibraryBig, Palette, UserRound } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+const items = [
+  { href: '/dashboard', label: 'Today', Icon: Home },
+  { href: '/library', label: 'Library', Icon: LibraryBig },
+  { href: '/analytics', label: 'Progress', Icon: ChartNoAxesCombined },
+  { href: '/palettes', label: 'Rewards', Icon: Palette },
+  { href: '/settings', label: 'Profile', Icon: UserRound },
+];
+
+export function Nav() {
+  const pathname = usePathname();
+  return <nav className="bottom-nav" aria-label="Primary navigation">{items.map(({ href, label, Icon }) => <Link key={href} className={cn('navlink', pathname === href && 'active')} href={href}><Icon aria-hidden="true" /><span>{label}</span></Link>)}</nav>;
+}
