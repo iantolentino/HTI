@@ -2,7 +2,8 @@ import { Category, TaskType } from '@prisma/client';
 import { expToNextLevel, isoDay, levelTitle, progressiveExp, progressiveTarget, regressTarget, streakFromDates, todayDate } from '@/lib/game';
 import { prisma } from '@/lib/prisma';
 
-export type DashboardTask = { id:string; icon:string; name:string; category:Category; type:TaskType; exp:number; target:string | null; done:boolean };
+export type RegressionEntry = { date:string; oldTarget:number; newTarget:number };
+export type DashboardTask = { id:string; icon:string; name:string; category:Category; type:TaskType; exp:number; target:string | null; done:boolean; regressions:RegressionEntry[] };
 
 function labelTarget(value:number, unit:string | null) {
   const labels:Record<string,string>={ REPS:'reps', MINUTES:'minutes', KM:'km', PAGES:'pages', CUSTOM:'count' };
@@ -16,9 +17,10 @@ export async function dashboardData(userId:string) {
   const active=await prisma.userTask.findMany({where:{userId,isPaused:false},include:{task:true}});
   const logs=await prisma.dailyLog.findMany({where:{userId,date:{gte:new Date(`${today}T00:00:00.000Z`)}},select:{taskId:true}});
   const done=new Set(logs.map(log=>log.taskId));
-  const tasks:DashboardTask[]=active.map(({id,task,personalTargetOverride,unitOverride,currentTarget})=>{
+  const tasks:DashboardTask[]=active.map(({id,task,personalTargetOverride,unitOverride,currentTarget,targetRegressionLog})=>{
     const target=task.type==='PROGRESSIVE'?(currentTarget ?? progressiveTarget(task.baseTarget??1,user.level,task.scalingFactor??0,personalTargetOverride)):null;
-    return {id,icon:task.icon,name:task.name,category:task.category,type:task.type,exp:task.type==='PROGRESSIVE'?progressiveExp(task.baseExp,target??0):task.baseExp,target:target===null?null:labelTarget(target,unitOverride??task.unit),done:done.has(task.id)};
+    const regressions=Array.isArray(targetRegressionLog)?targetRegressionLog.filter((entry):entry is RegressionEntry=>Boolean(entry)&&typeof entry==='object'&&typeof entry.date==='string'&&typeof entry.oldTarget==='number'&&typeof entry.newTarget==='number'):[];
+    return {id,icon:task.icon,name:task.name,category:task.category,type:task.type,exp:task.type==='PROGRESSIVE'?progressiveExp(task.baseExp,target??0):task.baseExp,target:target===null?null:labelTarget(target,unitOverride??task.unit),done:done.has(task.id),regressions};
   });
   const sevenDaysAgo=new Date(); sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate()-7);
   const recent=await prisma.dailyLog.findMany({where:{userId,date:{gte:sevenDaysAgo}},select:{date:true,expEarned:true}});
@@ -35,15 +37,15 @@ export async function dashboardData(userId:string) {
   const welcomeBack = daysAway >= 2 ? { daysMissed:daysAway - 1, message:'Good to see you — pick up where you left off.' } : null
   const weekStart = new Date(currentDate); weekStart.setUTCDate(weekStart.getUTCDate() - ((weekStart.getUTCDay() + 6) % 7))
   const weeklyKey = isoDay(weekStart, user.timezone)
-  let weeklyRecap: {bestDay:string|null;consistentCategory:string;weakestCategory:string}|null = null
+  let weeklyRecap: {key:string;bestDay:string|null;consistentCategory:string;weakestCategory:string}|null = null
   if (user.lastWeeklyRecapKey !== weeklyKey) {
     const weeklyLogs = await prisma.dailyLog.findMany({where:{userId,date:{gte:weekStart,lt:currentDate}},include:{task:true}})
     const dailyExp = new Map<string,number>(); const categoryCount:Record<string,number>={HEALTH:0,MENTAL:0,SELF_CARE:0,NUTRITION:0}
     for (const log of weeklyLogs) { const key=isoDay(log.date,user.timezone); dailyExp.set(key,(dailyExp.get(key)??0)+log.expEarned); categoryCount[log.task.category]++ }
     const ordered=Object.entries(categoryCount).sort((a,b)=>b[1]-a[1])
-    weeklyRecap={bestDay:[...dailyExp.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0]??null,consistentCategory:ordered[0]?.[0]??'HEALTH',weakestCategory:ordered.at(-1)?.[0]??'NUTRITION'}
-    await prisma.user.update({where:{id:userId},data:{lastWeeklyRecapKey:weeklyKey,lastSeenAt:new Date()}})
-  } else await prisma.user.update({where:{id:userId},data:{lastSeenAt:new Date()}})
+    weeklyRecap={key:weeklyKey,bestDay:[...dailyExp.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0]??null,consistentCategory:ordered[0]?.[0]??'HEALTH',weakestCategory:ordered.at(-1)?.[0]??'NUTRITION'}
+  }
+  await prisma.user.update({where:{id:userId},data:{lastSeenAt:new Date()}})
   return {user:{displayName:user.displayName,level:user.level,title:levelTitle(user.level),totalExp:user.totalExp,nextExp:expToNextLevel(user.level),darkMode:user.darkMode},tasks,done:tasks.filter(t=>t.done).length,growth,streak,welcomeBack,weeklyRecap,challenge,discoverUnlocked:user.hasCompletedFirstDay||daysAway>=1};
 }
 

@@ -1,15 +1,18 @@
 import { NextResponse } from 'next/server'
+import { randomInt } from 'crypto'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { comboBonus, isoDay, progressiveExp, progressiveTarget, staticDiminishedExp, streakFromDates, todayDate, vaultBoost, vaultDeposit } from '@/lib/game'
+import { z } from 'zod'
 
 const PERFECT_WEEK_EXP = 150
+const completeInput = z.object({ userTaskId:z.string().min(1), note:z.string().trim().max(600).optional() })
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const { userTaskId, note } = await request.json() as { userTaskId: string; note?: string }
+  const { userTaskId, note } = completeInput.parse(await request.json())
   const user = await prisma.user.findUnique({ where: { email: session.user.email } })
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const habit = await prisma.userTask.findFirst({ where: { id: userTaskId, userId: user.id }, include: { task: true } })
@@ -51,8 +54,11 @@ export async function POST(request: Request) {
   if (eligiblePerfectWeek) perfectWeekBonus = PERFECT_WEEK_EXP
   const completionTotal = allLogs.length
   const badgeKeys = [streak >= 7 ? 'streak7' : null, streak >= 30 ? 'streak30' : null, completionTotal >= 100 ? 'completions100' : null, eligiblePerfectWeek ? 'perfect_week' : null, Date.now() - user.createdAt.getTime() >= 30 * 86400000 ? 'first_month' : null].filter((key): key is string => Boolean(key))
+  const earnedBadges: { key: string; name: string; description: string; icon: string }[] = []
   if (perfectWeekBonus || streak > user.longestStreak || badgeKeys.length) {
     const badges = badgeKeys.length ? await prisma.badge.findMany({ where: { key: { in: badgeKeys } } }) : []
+    const existingBadgeIds = new Set((await prisma.userBadge.findMany({ where: { userId: user.id, badgeId: { in: badges.map(badge => badge.id) } }, select: { badgeId: true } })).map(badge => badge.badgeId))
+    earnedBadges.push(...badges.filter(badge => !existingBadgeIds.has(badge.id)).map(badge => ({ key: badge.key, name: badge.name, description: badge.description, icon: badge.icon })))
     await prisma.$transaction([
       prisma.user.update({ where: { id: user.id }, data: { totalExp: perfectWeekBonus ? { increment: perfectWeekBonus } : undefined, lifetimeExp: perfectWeekBonus ? { increment: perfectWeekBonus } : undefined, longestStreak: Math.max(user.longestStreak, streak), lastPerfectWeekEnd: eligiblePerfectWeek ? date : undefined } }),
       ...badges.map(badge => prisma.userBadge.upsert({ where: { userId_badgeId: { userId: user.id, badgeId: badge.id } }, update: {}, create: { userId: user.id, badgeId: badge.id } })),
@@ -66,12 +72,14 @@ export async function POST(request: Request) {
   let level = updated.level; let total = updated.totalExp; let leveled = false
   while (total >= Math.ceil(100 * Math.pow(level, 1.15))) { total -= Math.ceil(100 * Math.pow(level, 1.15)); level++; leveled = true }
   let unlockedPalette: string | null = null
+  let mysteryPalette = false
   if (leveled) {
     await prisma.user.update({ where: { id: user.id }, data: { level, totalExp: total } })
     const palette = await prisma.palette.findFirst({ where: { unlockLevel: { lte: level }, requiresPrestige: false, isSeasonal: false, users: { none: { userId: user.id } } }, orderBy: { order: 'asc' } })
-    const mystery = !palette ? (await prisma.palette.findMany({ where: { unlockLevel: null, isSeasonal: false, requiresPrestige: false, users: { none: { userId: user.id } } } }))[0] : null
+    const mysteryCandidates = !palette ? await prisma.palette.findMany({ where: { unlockLevel: null, isSeasonal: false, requiresPrestige: false, users: { none: { userId: user.id } } } }) : []
+    const mystery = mysteryCandidates.length ? mysteryCandidates[randomInt(mysteryCandidates.length)] : null
     const reward = palette ?? mystery
-    if (reward) { await prisma.userPalette.create({ data: { userId: user.id, paletteId: reward.id } }); unlockedPalette = reward.name }
+    if (reward) { await prisma.userPalette.create({ data: { userId: user.id, paletteId: reward.id } }); unlockedPalette = reward.name; mysteryPalette = Boolean(mystery) }
   }
-  return NextResponse.json({ exp, combo, vault, perfectWeekBonus, gained: gained + perfectWeekBonus, level, leveled, streak, unlockedPalette })
+  return NextResponse.json({ exp, combo, vault, perfectWeekBonus, gained: gained + perfectWeekBonus, level, leveled, streak, unlockedPalette, mysteryPalette, earnedBadges })
 }
