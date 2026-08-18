@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
 import { currentUser } from '@/lib/current-user'
 import { prisma } from '@/lib/prisma'
-import { isoDay, streakFromDates } from '@/lib/game'
+import { isoDay, streakFromDates, todayDate } from '@/lib/game'
 
 const categories = ['HEALTH', 'MENTAL', 'SELF_CARE', 'NUTRITION'] as const
 export async function GET() {
   const user = await currentUser(); if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const since = new Date(); since.setUTCDate(since.getUTCDate() - 364)
+  const since = todayDate(user.timezone); since.setUTCDate(since.getUTCDate() - 364)
   const [logs, activeTaskCount] = await Promise.all([prisma.dailyLog.findMany({ where: { userId: user.id, date: { gte: since } }, include: { task: true }, orderBy: { date: 'asc' } }),prisma.userTask.count({where:{userId:user.id,isPaused:false}})])
   const byDay = new Map<string, { exp: number; categories: Set<string> }>(); const categoryDays: Record<string, Map<string, number>> = Object.fromEntries(categories.map(category => [category, new Map()]))
   const categoryExp: Record<string, number> = Object.fromEntries(categories.map(category => [category, 0]))
