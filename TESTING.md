@@ -4,9 +4,11 @@ Last verified: 2026-08-18
 
 ## Automated checks
 
-- `npm run test` — passed (8 Vitest tests: game formulas and React components).
+- `npm run lint` — passed with no ESLint warnings or errors.
+- `npm run test` — passed (17 Vitest tests: game formulas, streak logic, onboarding route validation, and React components).
 - `npm run build` — passed (Next.js production build, strict TypeScript checking, and static generation).
-- Playwright configuration uses an isolated port (`3100`) so local E2E runs do not collide with another dev server.
+- `npm run test:e2e` — the mobile landing smoke journey passed. The persisted registration journey is intentionally skipped unless `DATABASE_URL` points to an isolated Neon test database.
+- Playwright configuration uses an isolated port (`3100`) so local E2E runs do not collide with another dev server. Configure an isolated Neon database and `NEXTAUTH_SECRET` before enabling the persisted registration/login flow in CI.
 
 ## Production smoke test
 
