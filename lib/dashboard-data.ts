@@ -28,8 +28,26 @@ export async function dashboardData(userId:string) {
   const growth=average?Math.max(-100,Math.min(300,Math.round((todayExp-average)/average*100))):null;
   const allDays=await prisma.dailyLog.findMany({where:{userId},select:{date:true}});
   const streak=streakFromDates([...new Set(allDays.map(log=>isoDay(log.date,user.timezone)))],today,user.createdAt.getTime()>Date.now()-7*86400000);
-  return {user:{displayName:user.displayName,level:user.level,title:levelTitle(user.level),totalExp:user.totalExp,nextExp:expToNextLevel(user.level),darkMode:user.darkMode},tasks,done:tasks.filter(t=>t.done).length,growth,streak};
+  const currentDate = todayDate(user.timezone)
+  const monthKey = isoDay(currentDate,user.timezone).slice(0,7)
+  const challenge = await prisma.monthlyChallenge.upsert({where:{userId_monthKey:{userId,monthKey}},update:{},create:{userId,monthKey,title:'Monthly Momentum',description:'Complete one health win and one focus win on the same day — then take a moment to notice the difference.',exp:120}})
+  const daysAway = Math.floor((currentDate.getTime() - todayDateFrom(user.lastSeenAt, user.timezone).getTime()) / 86400000)
+  const welcomeBack = daysAway >= 2 ? { daysMissed:daysAway - 1, message:'Good to see you — pick up where you left off.' } : null
+  const weekStart = new Date(currentDate); weekStart.setUTCDate(weekStart.getUTCDate() - ((weekStart.getUTCDay() + 6) % 7))
+  const weeklyKey = isoDay(weekStart, user.timezone)
+  let weeklyRecap: {bestDay:string|null;consistentCategory:string;weakestCategory:string}|null = null
+  if (user.lastWeeklyRecapKey !== weeklyKey) {
+    const weeklyLogs = await prisma.dailyLog.findMany({where:{userId,date:{gte:weekStart,lt:currentDate}},include:{task:true}})
+    const dailyExp = new Map<string,number>(); const categoryCount:Record<string,number>={HEALTH:0,MENTAL:0,SELF_CARE:0,NUTRITION:0}
+    for (const log of weeklyLogs) { const key=isoDay(log.date,user.timezone); dailyExp.set(key,(dailyExp.get(key)??0)+log.expEarned); categoryCount[log.task.category]++ }
+    const ordered=Object.entries(categoryCount).sort((a,b)=>b[1]-a[1])
+    weeklyRecap={bestDay:[...dailyExp.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0]??null,consistentCategory:ordered[0]?.[0]??'HEALTH',weakestCategory:ordered.at(-1)?.[0]??'NUTRITION'}
+    await prisma.user.update({where:{id:userId},data:{lastWeeklyRecapKey:weeklyKey,lastSeenAt:new Date()}})
+  } else await prisma.user.update({where:{id:userId},data:{lastSeenAt:new Date()}})
+  return {user:{displayName:user.displayName,level:user.level,title:levelTitle(user.level),totalExp:user.totalExp,nextExp:expToNextLevel(user.level),darkMode:user.darkMode},tasks,done:tasks.filter(t=>t.done).length,growth,streak,welcomeBack,weeklyRecap,challenge,discoverUnlocked:user.hasCompletedFirstDay||daysAway>=1};
 }
+
+function todayDateFrom(date:Date,timeZone:string){return new Date(`${isoDay(date,timeZone)}T00:00:00.000Z`)}
 
 async function evaluateMisses(userId:string, timezone:string, createdAt:Date, level:number) {
   const yesterday = todayDate(timezone); yesterday.setUTCDate(yesterday.getUTCDate() - 1);

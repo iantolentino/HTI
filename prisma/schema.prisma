@@ -53,17 +53,21 @@ model User {
  shareSlug String @unique @default(cuid())
  publicProfile Boolean @default(false)
  expVaultBalance Int @default(0)
+ longestStreak Int @default(0)
  onboardingCompletedAt DateTime?
  hasCompletedFirstDay Boolean @default(false)
  lastWeeklyRecapKey String?
  lastWelcomeBackAt DateTime?
  lastCompletionAt DateTime?
+ lastVaultAppliedDate DateTime?
+ lastPerfectWeekEnd DateTime?
  lastSeenAt DateTime @default(now())
  createdAt DateTime @default(now())
  tasks UserTask[]
  logs DailyLog[]
  palettes UserPalette[]
  badges UserBadge[]
+ challenges MonthlyChallenge[]
  activePalette Palette? @relation("activePalette",fields:[activePaletteId],references:[id])
 }
 model Task {
@@ -164,4 +168,16 @@ model HabitStackTask {
  stack HabitStack @relation(fields:[stackId],references:[id],onDelete:Cascade)
  task Task @relation(fields:[taskId],references:[id],onDelete:Cascade)
  @@id([stackId,taskId])
+}
+model MonthlyChallenge {
+ id String @id @default(cuid())
+ userId String
+ monthKey String
+ title String
+ description String
+ exp Int
+ createdAt DateTime @default(now())
+ completedAt DateTime?
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+ @@unique([userId,monthKey])
 }
