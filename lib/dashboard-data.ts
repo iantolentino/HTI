@@ -1,5 +1,5 @@
 import { Category, TaskType } from '@prisma/client';
-import { expToNextLevel, isoDay, levelTitle, progressiveExp, progressiveTarget } from '@/lib/game';
+import { expToNextLevel, isoDay, levelTitle, progressiveExp, progressiveTarget, streakFromDates } from '@/lib/game';
 import { prisma } from '@/lib/prisma';
 
 export type DashboardTask = { id:string; icon:string; name:string; category:Category; type:TaskType; exp:number; target:string | null; done:boolean };
@@ -25,5 +25,7 @@ export async function dashboardData(userId:string) {
   const values=[...daily.values()]; const average=values.length?Math.round(values.reduce((a,b)=>a+b,0)/7):0;
   const todayExp=daily.get(today)??0;
   const growth=average?Math.max(-100,Math.min(300,Math.round((todayExp-average)/average*100))):null;
-  return {user:{displayName:user.displayName,level:user.level,title:levelTitle(user.level),totalExp:user.totalExp,nextExp:expToNextLevel(user.level),darkMode:user.darkMode},tasks,done:tasks.filter(t=>t.done).length,growth,streak:0};
+  const allDays=await prisma.dailyLog.findMany({where:{userId},select:{date:true}});
+  const streak=streakFromDates([...new Set(allDays.map(log=>isoDay(log.date,user.timezone)))],today,user.createdAt.getTime()>Date.now()-7*86400000);
+  return {user:{displayName:user.displayName,level:user.level,title:levelTitle(user.level),totalExp:user.totalExp,nextExp:expToNextLevel(user.level),darkMode:user.darkMode},tasks,done:tasks.filter(t=>t.done).length,growth,streak};
 }
