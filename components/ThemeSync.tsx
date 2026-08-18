@@ -1,14 +1,4 @@
-'use client';
-import { useEffect } from 'react';
-
-export function ThemeSync() {
-  useEffect(() => {
-    document.documentElement.classList.add('dark');
-    let active = true;
-    fetch('/api/me').then(response => response.ok ? response.json() as Promise<{ darkMode?: boolean }> : null).then(data => {
-      if (active && data) document.documentElement.classList.toggle('dark', data.darkMode !== false);
-    }).catch(() => undefined);
-    return () => { active = false; };
-  }, []);
-  return null;
-}
+'use client'
+import { useEffect } from 'react'
+type Palette={id:string;colors:{primary?:string;secondary?:string;accent?:string};owned:boolean}
+export function ThemeSync(){useEffect(()=>{let active=true;Promise.all([fetch('/api/me'),fetch('/api/palettes')]).then(async([me,palettes])=>[me.ok?await me.json() as {darkMode?:boolean}:null,palettes.ok?await palettes.json() as {activePaletteId?:string;palettes:Palette[]}:null] as const).then(([me,data])=>{if(!active)return;if(me)document.documentElement.classList.toggle('dark',me.darkMode!==false);const palette=data?.palettes.find(item=>item.id===data.activePaletteId);if(palette?.colors.primary){const root=document.documentElement.style;root.setProperty('--primary',palette.colors.primary);root.setProperty('--accent',palette.colors.accent??palette.colors.secondary??palette.colors.primary);root.setProperty('--shadow',palette.colors.primary)}}).catch(()=>undefined);return()=>{active=false}},[]);return null}
