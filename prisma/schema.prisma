@@ -4,6 +4,7 @@ generator client {
 datasource db {
  provider = "postgresql"
  url = env("DATABASE_URL")
+ directUrl = env("DIRECT_URL")
 }
 
 enum Category {
@@ -46,7 +47,7 @@ model User {
  lifetimeExp Int @default(0)
  prestigeCount Int @default(0)
  activePaletteId String?
- darkMode Boolean @default(false)
+ darkMode Boolean @default(true)
  leaderboardOptIn Boolean @default(false)
  leaderboardNickname String?
  shareSlug String @unique @default(cuid())
@@ -95,6 +96,7 @@ model UserTask {
  currentTarget Int?
  consecutiveMisses Int @default(0)
  targetRegressionLog Json @default("[]")
+ lastMissEvaluatedDate DateTime?
  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
  task Task @relation(fields:[taskId],references:[id],onDelete:Cascade)
  @@unique([userId,taskId])

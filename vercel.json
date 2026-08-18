@@ -1,1 +1,1 @@
-{"framework":"nextjs","buildCommand":"prisma migrate deploy && prisma generate && prisma db seed && next build"}
+{"framework":"nextjs","buildCommand":"if [ -z \"$DIRECT_URL\" ]; then export DIRECT_URL=\"$DATABASE_URL\"; fi; prisma migrate deploy && prisma generate && prisma db seed && next build"}
