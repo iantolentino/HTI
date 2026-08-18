@@ -17,5 +17,6 @@ export async function GET() {
   const monthlyExp = Array.from({ length: 12 }, (_, offset) => { const date = new Date(); date.setUTCMonth(date.getUTCMonth() - (11 - offset), 1); const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`; return { month: date.toLocaleString('en-US', { month: 'short' }), exp: logs.filter(log => { const day = isoDay(log.date, user.timezone); return day.startsWith(key) }).reduce((sum, log) => sum + log.expEarned, 0) } })
   const best = [...byDay.entries()].sort((a, b) => b[1].exp - a[1].exp)[0]
   const days=[...byDay.keys()];const currentStreak=streakFromDates(days,isoDay(new Date(),user.timezone),user.createdAt.getTime()>Date.now()-7*86400000)
-  return NextResponse.json({ values, categoryValues, categoryExp, monthlyExp, best: best ? { date: best[0], exp: best[1].exp } : null, total: logs.length,currentStreak,longestStreak:user.longestStreak })
+  const categoryMastery = Object.fromEntries(categories.map(category => [category, Math.max(1, Math.floor(Math.sqrt(categoryExp[category] / 100)) + 1)]))
+  return NextResponse.json({ values, categoryValues, categoryExp, categoryMastery, monthlyExp, best: best ? { date: best[0], exp: best[1].exp } : null, total: logs.length,currentStreak,longestStreak:user.longestStreak })
 }

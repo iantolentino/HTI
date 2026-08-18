@@ -13,6 +13,7 @@ type AnalyticsData = {
   values: number[]
   categoryValues: Record<string, number[]>
   categoryExp: Record<string, number>
+  categoryMastery: Record<string, number>
   monthlyExp: { month: string; exp: number }[]
   best: { date: string; exp: number } | null
   total: number
@@ -75,7 +76,7 @@ export default function Analytics() {
 
     <Card className="mt-4">
       <CardHeader><h2 className="font-black">Category mastery</h2></CardHeader>
-      <CardContent className="grid gap-3">{Object.entries(data.categoryExp).map(([category, exp]) => <div key={category}><div className="flex justify-between text-sm font-bold"><span>{labels[category]}</span><span>{exp} EXP</span></div><div className="mt-1 h-3 rounded-full bg-brand/15"><div className="h-full rounded-full bg-accent" style={{ width: `${Math.round(exp / max * 100)}%` }} /></div></div>)}</CardContent>
+      <CardContent className="grid gap-3">{Object.entries(data.categoryExp).map(([category, exp]) => <div key={category}><div className="flex justify-between text-sm font-bold"><span>{labels[category]} · Level {data.categoryMastery[category] ?? 1}</span><span>{exp} EXP</span></div><div className="mt-1 h-3 rounded-full bg-brand/15"><div className="h-full rounded-full bg-accent" style={{ width: `${Math.round(exp / max * 100)}%` }} /></div></div>)}</CardContent>
     </Card>
 
     <Card className="mt-4">

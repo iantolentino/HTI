@@ -17,10 +17,10 @@ export async function dashboardData(userId:string) {
   const active=await prisma.userTask.findMany({where:{userId,isPaused:false},include:{task:true}});
   const logs=await prisma.dailyLog.findMany({where:{userId,date:{gte:new Date(`${today}T00:00:00.000Z`)}},select:{taskId:true}});
   const done=new Set(logs.map(log=>log.taskId));
-  const tasks:DashboardTask[]=active.map(({id,task,personalTargetOverride,unitOverride,currentTarget,targetRegressionLog})=>{
+  const tasks:DashboardTask[]=active.map(({id,task,iconOverride,personalTargetOverride,unitOverride,currentTarget,targetRegressionLog})=>{
     const target=task.type==='PROGRESSIVE'?(currentTarget ?? progressiveTarget(task.baseTarget??1,user.level,task.scalingFactor??0,personalTargetOverride)):null;
     const regressions=Array.isArray(targetRegressionLog)?targetRegressionLog.filter((entry):entry is RegressionEntry=>{if(!entry||typeof entry!=='object')return false;const candidate=entry as Record<string,unknown>;return typeof candidate.date==='string'&&typeof candidate.oldTarget==='number'&&typeof candidate.newTarget==='number'}):[];
-    return {id,icon:task.icon,name:task.name,category:task.category,type:task.type,exp:task.type==='PROGRESSIVE'?progressiveExp(task.baseExp,target??0):task.baseExp,target:target===null?null:labelTarget(target,unitOverride??task.unit),done:done.has(task.id),regressions};
+    return {id,icon:iconOverride??task.icon,name:task.name,category:task.category,type:task.type,exp:task.type==='PROGRESSIVE'?progressiveExp(task.baseExp,target??0):task.baseExp,target:target===null?null:labelTarget(target,unitOverride??task.unit),done:done.has(task.id),regressions};
   });
   const sevenDaysAgo=new Date(); sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate()-7);
   const recent=await prisma.dailyLog.findMany({where:{userId,date:{gte:sevenDaysAgo}},select:{date:true,expEarned:true}});
