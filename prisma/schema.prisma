@@ -53,6 +53,11 @@ model User {
  shareSlug String @unique @default(cuid())
  publicProfile Boolean @default(false)
  expVaultBalance Int @default(0)
+ onboardingCompletedAt DateTime?
+ hasCompletedFirstDay Boolean @default(false)
+ lastWeeklyRecapKey String?
+ lastWelcomeBackAt DateTime?
+ lastCompletionAt DateTime?
  lastSeenAt DateTime @default(now())
  createdAt DateTime @default(now())
  tasks UserTask[]

@@ -1,0 +1,6 @@
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { currentUser } from '@/lib/current-user';
+import { prisma } from '@/lib/prisma';
+export async function GET(){const user=await currentUser();if(!user)return NextResponse.json({error:'Unauthorized'},{status:401});const palettes=await prisma.palette.findMany({orderBy:{order:'asc'}});const owned=new Set((await prisma.userPalette.findMany({where:{userId:user.id},select:{paletteId:true}})).map(p=>p.paletteId));return NextResponse.json({activePaletteId:user.activePaletteId,palettes:palettes.map(p=>({...p,owned:owned.has(p.id),eligible:!p.requiresPrestige||user.prestigeCount>0}))});}
+export async function PATCH(request:Request){const user=await currentUser();if(!user)return NextResponse.json({error:'Unauthorized'},{status:401});try{const {paletteId}=z.object({paletteId:z.string()}).parse(await request.json());const owned=await prisma.userPalette.findUnique({where:{userId_paletteId:{userId:user.id,paletteId}}});if(!owned)return NextResponse.json({error:'Unlock this palette before selecting it.'},{status:403});await prisma.user.update({where:{id:user.id},data:{activePaletteId:paletteId}});return NextResponse.json({ok:true});}catch{return NextResponse.json({error:'Palette selection failed.'},{status:400});}}

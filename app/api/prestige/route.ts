@@ -1,0 +1,4 @@
+import { NextResponse } from 'next/server';
+import { currentUser } from '@/lib/current-user';
+import { prisma } from '@/lib/prisma';
+export async function POST(){const user=await currentUser();if(!user)return NextResponse.json({error:'Unauthorized'},{status:401});const [available,owned,badge]=await Promise.all([prisma.palette.count({where:{isSeasonal:false,requiresPrestige:false}}),prisma.userPalette.count({where:{userId:user.id,palette:{isSeasonal:false,requiresPrestige:false}}}),prisma.badge.findUnique({where:{key:'first_prestige'}})]);if(owned<available)return NextResponse.json({error:'Unlock every standard palette before prestiging.'},{status:403});await prisma.$transaction([prisma.user.update({where:{id:user.id},data:{level:1,totalExp:0,prestigeCount:{increment:1}}}),...(badge?[prisma.userBadge.upsert({where:{userId_badgeId:{userId:user.id,badgeId:badge.id}},update:{},create:{userId:user.id,badgeId:badge.id}})]:[])]);return NextResponse.json({ok:true});}
