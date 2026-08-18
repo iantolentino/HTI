@@ -19,7 +19,7 @@ export async function dashboardData(userId:string) {
   const done=new Set(logs.map(log=>log.taskId));
   const tasks:DashboardTask[]=active.map(({id,task,personalTargetOverride,unitOverride,currentTarget,targetRegressionLog})=>{
     const target=task.type==='PROGRESSIVE'?(currentTarget ?? progressiveTarget(task.baseTarget??1,user.level,task.scalingFactor??0,personalTargetOverride)):null;
-    const regressions=Array.isArray(targetRegressionLog)?targetRegressionLog.filter((entry):entry is RegressionEntry=>Boolean(entry)&&typeof entry==='object'&&typeof entry.date==='string'&&typeof entry.oldTarget==='number'&&typeof entry.newTarget==='number'):[];
+    const regressions=Array.isArray(targetRegressionLog)?targetRegressionLog.filter((entry):entry is RegressionEntry=>{if(!entry||typeof entry!=='object')return false;const candidate=entry as Record<string,unknown>;return typeof candidate.date==='string'&&typeof candidate.oldTarget==='number'&&typeof candidate.newTarget==='number'}):[];
     return {id,icon:task.icon,name:task.name,category:task.category,type:task.type,exp:task.type==='PROGRESSIVE'?progressiveExp(task.baseExp,target??0):task.baseExp,target:target===null?null:labelTarget(target,unitOverride??task.unit),done:done.has(task.id),regressions};
   });
   const sevenDaysAgo=new Date(); sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate()-7);
