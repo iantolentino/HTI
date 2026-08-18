@@ -117,6 +117,7 @@ model DailyLog {
  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
  task Task @relation(fields:[taskId],references:[id],onDelete:Cascade)
  @@unique([userId,taskId,date])
+ @@index([userId,date])
 }
 model Palette {
  id String @id @default(cuid())

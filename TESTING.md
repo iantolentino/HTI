@@ -2,6 +2,20 @@
 
 Last verified: 2026-08-18
 
+## Mobile functional audit changelog
+
+- Fixed theme application race conditions: Settings now updates the visible theme immediately after a successful save and emits a single root-level theme event. The root synchronizer listens for that event and restores the saved mode and selected palette after reload or sign-in.
+- The default Concrete and Concrete Dark tokens remain the source of truth. The default palette resolves to the exact documented light and dark RGB values; selected reward palettes update the accent token only, without introducing a second hard-coded theme.
+- Fixed palette selection so a successfully selected owned palette updates the app immediately, instead of waiting for a reload. Locked palette controls remain disabled and the server still rejects forged requests.
+- Corrected contribution heatmap intensity to use actual completed-task counts per local timezone day, rather than the number of represented categories. The graph still produces 365 cells / 53 week columns and is horizontally scrollable on a 375px viewport.
+- Added a composite `DailyLog(userId, date)` index and migration for the dashboard/analytics date-range query.
+- Added category filters and a real no-results state to the Habit Library. Added a mobile floating quick-add control on Dashboard.
+- Kept swipe interaction pointer-driven; task cards track pointer movement with transform-only motion and expose their complete/remove affordances underneath. Reduced-motion users retain the tap controls.
+
+### Current verification boundary
+
+The code-level checks below passed after this audit. Full persisted user-journey checks (registration through deletion, export downloads, timezone rollover, prestige, and public-profile privacy) require an isolated Neon test database. This workspace does not contain database credentials, so those destructive/live-data checks are intentionally not represented as passed here. Run the Playwright persisted flow against a disposable Neon branch before asserting a production full-user audit.
+
 ## Automated checks
 
 - `npm run lint` — passed with no ESLint warnings or errors.
