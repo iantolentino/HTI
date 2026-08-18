@@ -15,7 +15,7 @@ export async function dashboardData(userId:string) {
   await evaluateMisses(user.id, user.timezone, user.createdAt, user.level);
   const today=isoDay(new Date(),user.timezone);
   const active=await prisma.userTask.findMany({where:{userId,isPaused:false},include:{task:true}});
-  const logs=await prisma.dailyLog.findMany({where:{userId,date:{gte:new Date(`${today}T00:00:00.000Z`)}},select:{taskId:true}});
+  const logs=await prisma.dailyLog.findMany({where:{userId,date:todayDate(user.timezone)},select:{taskId:true}});
   const done=new Set(logs.map(log=>log.taskId));
   const tasks:DashboardTask[]=active.map(({id,task,iconOverride,personalTargetOverride,unitOverride,currentTarget,targetRegressionLog})=>{
     const target=task.type==='PROGRESSIVE'?(currentTarget ?? progressiveTarget(task.baseTarget??1,user.level,task.scalingFactor??0,personalTargetOverride)):null;
