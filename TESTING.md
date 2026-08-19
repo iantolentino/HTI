@@ -24,7 +24,7 @@ Last verified: 2026-08-19
 
 ### Current verification boundary
 
-The code-level checks below passed after this audit. Full persisted user-journey checks (registration through deletion, export downloads, timezone rollover, prestige, and public-profile privacy) require an isolated Neon test database. This workspace does not contain database credentials, so those destructive/live-data checks are intentionally not represented as passed here. Run the Playwright persisted flow against a disposable Neon branch before asserting a production full-user audit.
+The code-level checks below passed after this audit. The deployed production app also passed a disposable-account registration/onboarding/deletion smoke test. The remaining full persisted user-journey checks (historical analytics fixtures, export contents, timezone rollover, prestige, and public-profile privacy) require an isolated Neon test database. This workspace does not contain those credentials, so they are intentionally not represented as passed here. Run the opt-in Playwright flow against a disposable Neon branch before asserting a production full-user audit.
 
 ## Automated checks
 
@@ -34,6 +34,7 @@ The code-level checks below passed after this audit. Full persisted user-journey
 - `prisma validate` — passed against the Prisma schema with a non-production placeholder connection string; the migration SQL also diffs cleanly from an empty schema.
 - `npm run test:e2e` — the mobile landing smoke journey passed. The persisted registration journey is intentionally skipped unless `DATABASE_URL` points to an isolated Neon test database.
 - The expanded persisted mobile journey is deliberately opt-in: run `E2E_RUN=1` with `E2E_DATABASE_URL` (and, when required, `E2E_DIRECT_URL`) for an isolated seeded Neon branch. It covers registration, onboarding effects, tap/swipe completions, anti-spam feedback, Library filtering/customization, exports, theme persistence, leaderboard opt-in, public-profile privacy, login persistence, and duplicate registration.
+- When the isolated database is configured, the journey seeds 14 days of varied DailyLogs and verifies non-uniform heatmap cells, best-day analytics, and both JSON and CSV download filenames without touching production data.
 - Playwright configuration uses an isolated port (`3100`) so local E2E runs do not collide with another dev server. Configure an isolated Neon database and `NEXTAUTH_SECRET` before enabling the persisted registration/login flow in CI.
 
 ## Production smoke test
