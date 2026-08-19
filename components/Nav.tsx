@@ -14,5 +14,5 @@ const items = [
 
 export function Nav({deemphasizeDiscovery=false}:{deemphasizeDiscovery?:boolean}) {
   const pathname = usePathname();
-  return <nav className="bottom-nav" aria-label="Primary navigation">{items.map(({ href, label, Icon }) => { const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(`${href}/`)); const quiet = deemphasizeDiscovery && !active && href !== '/settings'; return <Link key={href} className={cn('navlink', active && 'active',quiet&&'opacity-45')} aria-current={active ? 'page' : undefined} href={href}><span className="nav-icon"><Icon aria-hidden="true" /></span><span>{label}</span></Link> })}</nav>;
+  return <nav className="bottom-nav" aria-label="Primary navigation">{items.map(({ href, label, Icon }) => { const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(`${href}/`)); const hidden = deemphasizeDiscovery && !active && href !== '/dashboard' && href !== '/settings'; if (hidden) return null; return <Link key={href} className={cn('navlink', active && 'active')} aria-current={active ? 'page' : undefined} href={href}><span className="nav-icon"><Icon aria-hidden="true" /></span><span>{label}</span></Link> })}</nav>;
 }

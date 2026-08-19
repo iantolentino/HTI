@@ -14,6 +14,7 @@ type AnalyticsData = {
   categoryValues: Record<string, number[]>
   categoryExp: Record<string, number>
   categoryMastery: Record<string, number>
+  mastery: Record<string, {level:number;title:string;expIntoLevel:number;expToNext:number;nextThreshold:number}>
   monthlyExp: { month: string; exp: number }[]
   best: { date: string; exp: number } | null
   total: number
@@ -76,7 +77,7 @@ export default function Analytics() {
 
     <Card className="mt-4">
       <CardHeader><h2 className="font-black">Category mastery</h2></CardHeader>
-      <CardContent className="grid gap-3">{Object.entries(data.categoryExp).map(([category, exp]) => <div key={category}><div className="flex justify-between text-sm font-bold"><span>{labels[category]} · Level {data.categoryMastery[category] ?? 1}</span><span>{exp} EXP</span></div><div className="mt-1 h-3 rounded-full bg-brand/15"><div className="h-full rounded-full bg-accent" style={{ width: `${Math.round(exp / max * 100)}%` }} /></div></div>)}</CardContent>
+      <CardContent className="grid gap-3">{Object.entries(data.categoryExp).map(([category, exp]) => { const mastery=data.mastery?.[category]; const percent=mastery?Math.min(100,Math.round(mastery.expIntoLevel/mastery.expToNext*100)):Math.round(exp/max*100); return <div key={category}><div className="flex justify-between text-sm font-bold"><span>{labels[category]} · Level {mastery?.level??data.categoryMastery[category]??1} · {mastery?.title??'Initiate'}</span><span>{exp} EXP</span></div><div className="mt-1 h-3 rounded-full bg-brand/15"><div className="h-full bg-accent" style={{ width: `${percent}%` }} /></div><p className="mt-1 text-xs text-muted-foreground">{mastery?`${mastery.expToNext - mastery.expIntoLevel} EXP to next mastery level`:'Keep building your rhythm.'}</p></div> })}</CardContent>
     </Card>
 
     <Card className="mt-4">

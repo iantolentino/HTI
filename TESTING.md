@@ -1,8 +1,16 @@
 # LevelUp Daily verification
 
-Last verified: 2026-08-18
+Last verified: 2026-08-19
 
 ## Mobile functional audit changelog
+
+### Selected improvement pass (2026-08-19)
+
+- Added timezone-aware multi-day progressive miss accounting with scheduled-day filtering, transparent regression history, and grace-period-safe streak behavior.
+- Added optimistic completion updates, duplicate-write race protection, bounded historical reads, and a retryable route-level error boundary.
+- Added progressive first-day navigation disclosure, remaining/completed dashboard hierarchy, onboarding routine preview, stronger monthly challenge progress, category mastery levels, schedule-day controls, habit ordering, and archive/restore instead of destructive habit removal.
+- Replaced the browser-prompt account deletion flow with an accessible typed-confirmation dialog; added password visibility, confirmation, strength feedback, timezone validation, and public-profile copy/share actions.
+- Public profile API now returns only aggregate heatmap buckets (never raw DailyLog rows or notes).
 
 - Fixed theme application race conditions: Settings now updates the visible theme immediately after a successful save and emits a single root-level theme event. The root synchronizer listens for that event and restores the saved mode and selected palette after reload or sign-in.
 - The default Concrete and Concrete Dark tokens remain the source of truth. The default palette resolves to the exact documented light and dark RGB values; selected reward palettes update the accent token only, without introducing a second hard-coded theme.

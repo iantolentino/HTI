@@ -1,0 +1,3 @@
+'use client'
+import { Button } from '@/components/ui/button'
+export default function Error({reset}:{error:Error & {digest?:string};reset:()=>void}){return <main className="shell grid min-h-screen place-items-center"><section className="w-full max-w-md border-2 border-border bg-card p-6 text-center shadow-[4px_4px_0_rgb(var(--shadow))]"><p className="eyebrow">A SMALL DETOUR</p><h1 className="mt-2 text-2xl font-black">That page needs another try.</h1><p className="mt-2 text-sm text-muted-foreground">Your progress is safe. Reload this view and continue when you’re ready.</p><Button className="mt-5 w-full" onClick={()=>reset()}>Try again</Button></section></main>}

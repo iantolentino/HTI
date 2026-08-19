@@ -5,6 +5,7 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { comboBonus, isoDay, progressiveExp, progressiveTarget, staticDiminishedExp, streakFromDates, todayDate, vaultBoost, vaultDeposit } from '@/lib/game'
 import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 
 const PERFECT_WEEK_EXP = 150
 const completeInput = z.object({ userTaskId:z.string().min(1), note:z.string().trim().max(600).optional() })
@@ -12,7 +13,9 @@ const completeInput = z.object({ userTaskId:z.string().min(1), note:z.string().t
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const { userTaskId, note } = completeInput.parse(await request.json())
+  let parsed: z.infer<typeof completeInput>
+  try { parsed = completeInput.parse(await request.json()) } catch { return NextResponse.json({ error: 'Please choose a valid habit.' }, { status: 400 }) }
+  const { userTaskId, note } = parsed
   const user = await prisma.user.findUnique({ where: { email: session.user.email } })
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const habit = await prisma.userTask.findFirst({ where: { id: userTaskId, userId: user.id }, include: { task: true } })
@@ -38,21 +41,30 @@ export async function POST(request: Request) {
   const useVault = dayExpBefore === 0 && trailingAverage > 0 && exp < trailingAverage * 0.7 && user.lastVaultAppliedDate?.getTime() !== date.getTime()
   const vault = useVault ? vaultBoost(user.expVaultBalance, true) : 0
   const gained = exp + combo + vault
-  await prisma.$transaction([
-    prisma.dailyLog.create({ data: { userId: user.id, taskId: habit.taskId, date, expEarned: exp, targetAtCompletion: target, note } }),
-    prisma.userTask.update({ where: { id: habit.id }, data: { consecutiveMisses: 0, lastMissEvaluatedDate: date } }),
-    prisma.user.update({ where: { id: user.id }, data: { totalExp: { increment: gained }, lifetimeExp: { increment: gained }, expVaultBalance: vault ? { decrement: vault } : undefined, lastVaultAppliedDate: vault ? date : undefined, lastCompletionAt: new Date(), hasCompletedFirstDay: completedToday + 1 === activeTasks.length ? true : undefined } }),
-  ])
+  try {
+    await prisma.$transaction([
+      prisma.dailyLog.create({ data: { userId: user.id, taskId: habit.taskId, date, expEarned: exp, targetAtCompletion: target, note } }),
+      prisma.userTask.update({ where: { id: habit.id }, data: { consecutiveMisses: 0, lastMissEvaluatedDate: date } }),
+      prisma.user.update({ where: { id: user.id }, data: { totalExp: { increment: gained }, lifetimeExp: { increment: gained }, expVaultBalance: vault ? { decrement: vault } : undefined, lastVaultAppliedDate: vault ? date : undefined, lastCompletionAt: new Date(), hasCompletedFirstDay: completedToday + 1 === activeTasks.length ? true : undefined } }),
+    ])
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') return NextResponse.json({ error: 'Already completed today.' }, { status: 409 })
+    throw error
+  }
 
-  const allLogs = await prisma.dailyLog.findMany({ where: { userId: user.id }, select: { date: true, taskId: true } })
+  const windowStart = new Date(date); windowStart.setUTCDate(windowStart.getUTCDate() - 365)
+  const [recentLogs, completionAggregate] = await Promise.all([
+    prisma.dailyLog.findMany({ where: { userId: user.id, date: { gte: windowStart } }, select: { date: true, taskId: true } }),
+    prisma.dailyLog.count({ where: { userId: user.id } }),
+  ])
   const dayKey = isoDay(date, user.timezone)
-  const streak = streakFromDates([...new Set(allLogs.map(log => isoDay(log.date, user.timezone)))], dayKey, false)
+  const streak = streakFromDates([...new Set(recentLogs.map(log => isoDay(log.date, user.timezone)))], dayKey, false)
   let perfectWeekBonus = 0
   const lastSeven = new Set<string>()
-  for (let offset = 0; offset < 7; offset++) { const candidate = new Date(date); candidate.setUTCDate(candidate.getUTCDate() - offset); const key = isoDay(candidate, user.timezone); const completed = new Set(allLogs.filter(log => isoDay(log.date, user.timezone) === key).map(log => log.taskId)); if (completed.size >= activeTasks.length) lastSeven.add(key) }
+  for (let offset = 0; offset < 7; offset++) { const candidate = new Date(date); candidate.setUTCDate(candidate.getUTCDate() - offset); const key = isoDay(candidate, user.timezone); const completed = new Set(recentLogs.filter(log => isoDay(log.date, user.timezone) === key).map(log => log.taskId)); if (completed.size >= activeTasks.length) lastSeven.add(key) }
   const eligiblePerfectWeek = lastSeven.size === 7 && (!user.lastPerfectWeekEnd || date.getTime() - user.lastPerfectWeekEnd.getTime() >= 7 * 86400000)
   if (eligiblePerfectWeek) perfectWeekBonus = PERFECT_WEEK_EXP
-  const completionTotal = allLogs.length
+  const completionTotal = completionAggregate
   const badgeKeys = [streak >= 7 ? 'streak7' : null, streak >= 30 ? 'streak30' : null, completionTotal >= 100 ? 'completions100' : null, eligiblePerfectWeek ? 'perfect_week' : null, Date.now() - user.createdAt.getTime() >= 30 * 86400000 ? 'first_month' : null].filter((key): key is string => Boolean(key))
   const earnedBadges: { key: string; name: string; description: string; icon: string }[] = []
   if (perfectWeekBonus || streak > user.longestStreak || badgeKeys.length) {

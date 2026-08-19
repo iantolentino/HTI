@@ -1,10 +1,164 @@
-'use client'
-import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { ArrowRight, Check, Sparkles } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
-const questions=[['What do you want to improve most?',['Energy and movement','Focus and calm','Self-care','Nutrition']],['When does a small habit fit best?',['Morning','Midday','Evening','Whenever I can']],['How should your first routine feel?',['Very gentle','Balanced','A little challenging']]] as const
-export default function Onboarding(){const router=useRouter();const [step,setStep]=useState(0);const [choice,setChoice]=useState('');const [answers,setAnswers]=useState<string[]>([]);const [busy,setBusy]=useState(false);const q=questions[step];async function next(){if(!choice)return;const nextAnswers=[...answers];nextAnswers[step]=choice;if(step<questions.length-1){setAnswers(nextAnswers);setChoice('');setStep(step+1);return}setBusy(true);const response=await fetch('/api/onboarding',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({answers:nextAnswers})});if(response.ok)router.push('/dashboard');else setBusy(false)}
-return <main className="shell flex min-h-[calc(100vh-1rem)] items-center"><Card className="mx-auto w-full max-w-md overflow-hidden"><CardContent className="p-5 sm:p-7"><div className="flex items-center justify-between"><span className="inline-flex items-center gap-2 text-sm font-black text-brand"><Sparkles className="size-4"/> QUICK START</span><span className="text-sm font-bold text-muted-foreground">{step+1}/{questions.length}</span></div><div className="mt-4 h-2 overflow-hidden border-2 border-border bg-card"><div className="h-full bg-accent transition-all" style={{width:`${((step+1)/questions.length)*100}%`}}/></div><h1 className="mt-7 text-3xl font-black tracking-tight">{q[0]}</h1><p className="mt-2 text-sm text-muted-foreground">There is no wrong answer. We’ll shape your first routine around it.</p><div className="mt-7 grid gap-3">{q[1].map(option=><button type="button" key={option} onClick={()=>setChoice(option)} className={cn('flex min-h-14 items-center gap-3 rounded-md border-2 p-4 text-left font-bold transition',choice===option?'border-border bg-accent text-foreground shadow-[3px_3px_0_rgb(var(--shadow))]':'border-border bg-card')}><span className={cn('grid size-6 place-items-center rounded-full border-2',choice===option?'border-border bg-brand text-white':'border-border')}>{choice===option&&<Check className="size-4"/>}</span>{option}</button>)}</div><Button disabled={!choice||busy} onClick={()=>void next()} size="lg" className="mt-7 w-full">{busy?'Setting up…':step===questions.length-1?'Meet my habits':'Continue'}<ArrowRight className="ml-auto size-4"/></Button></CardContent></Card></main>}
+"use client";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowRight, Check, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
+const questions = [
+  [
+    "What do you want to improve most?",
+    ["Energy and movement", "Focus and calm", "Self-care", "Nutrition"],
+  ],
+  [
+    "When does a small habit fit best?",
+    ["Morning", "Midday", "Evening", "Whenever I can"],
+  ],
+  [
+    "How should your first routine feel?",
+    ["Very gentle", "Balanced", "A little challenging"],
+  ],
+] as const;
+export default function Onboarding() {
+  const router = useRouter();
+  const [step, setStep] = useState(0);
+  const [choice, setChoice] = useState("");
+  const [answers, setAnswers] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const q = questions[step];
+  async function submit(nextAnswers: string[]) {
+    setBusy(true);
+    const response = await fetch("/api/onboarding", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ answers: nextAnswers }),
+    });
+    if (response.ok) router.push("/dashboard");
+    else setBusy(false);
+  }
+  async function next() {
+    if (!choice) return;
+    const nextAnswers = [...answers];
+    nextAnswers[step] = choice;
+    if (step < questions.length - 1) {
+      setAnswers(nextAnswers);
+      setChoice("");
+      setStep(step + 1);
+      return;
+    }
+    setAnswers(nextAnswers);
+    setStep(questions.length);
+  }
+  return (
+    <main className="shell flex min-h-[calc(100vh-1rem)] items-center">
+      <Card className="mx-auto w-full max-w-md overflow-hidden">
+        <CardContent className="p-5 sm:p-7">
+          <div className="flex items-center justify-between">
+            <span className="inline-flex items-center gap-2 text-sm font-black text-brand">
+              <Sparkles className="size-4" /> QUICK START
+            </span>
+            <span className="text-sm font-bold text-muted-foreground">
+              {step < questions.length
+                ? `${step + 1}/${questions.length}`
+                : "READY"}
+            </span>
+          </div>
+          {step < questions.length ? (
+            <>
+              <div className="mt-4 h-2 overflow-hidden border-2 border-border bg-card">
+                <div
+                  className="h-full bg-accent transition-all"
+                  style={{ width: `${((step + 1) / questions.length) * 100}%` }}
+                />
+              </div>
+              <h1 className="mt-7 text-3xl font-black tracking-tight">
+                {q[0]}
+              </h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                There is no wrong answer. We’ll shape your first routine around
+                it.
+              </p>
+              <div className="mt-7 grid gap-3">
+                {q[1].map((option) => (
+                  <button
+                    type="button"
+                    key={option}
+                    onClick={() => {
+                      setChoice(option)
+                      if (step === questions.length - 1) {
+                        const nextAnswers = [...answers]
+                        nextAnswers[step] = option
+                        setAnswers(nextAnswers)
+                        setStep(questions.length)
+                      }
+                    }}
+                    className={cn(
+                      "flex min-h-14 items-center gap-3 rounded-md border-2 p-4 text-left font-bold transition",
+                      choice === option
+                        ? "border-border bg-accent text-foreground shadow-[3px_3px_0_rgb(var(--shadow))]"
+                        : "border-border bg-card",
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "grid size-6 place-items-center rounded-full border-2",
+                        choice === option
+                          ? "border-border bg-brand text-white"
+                          : "border-border",
+                      )}
+                    >
+                      {choice === option && <Check className="size-4" />}
+                    </span>
+                    {option}
+                  </button>
+                ))}
+              </div>
+              <Button
+                disabled={!choice || busy}
+                onClick={() => void next()}
+                size="lg"
+                className="mt-7 w-full"
+              >
+                {step === questions.length - 1 ? 'Meet my habits' : 'Continue'}
+                <ArrowRight className="ml-auto size-4" />
+              </Button>
+            </>
+          ) : (
+            <>
+              <h1 className="mt-7 text-3xl font-black tracking-tight">
+                Your first routine
+              </h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Here’s the shape we’ll activate. You can tune it anytime in
+                Library.
+              </p>
+              <div className="mt-6 space-y-3">
+                {answers.map((answer, index) => (
+                  <div
+                    key={answer}
+                    className="border-2 border-border bg-muted p-3"
+                  >
+                    <span className="text-[10px] font-black uppercase tracking-wider text-brand">
+                      {questions[index][0]}
+                    </span>
+                    <b className="mt-1 block">{answer}</b>
+                  </div>
+                ))}
+              </div>
+              <Button
+                aria-label={busy ? 'Setting up your routine' : 'Meet my habits — activate my routine'}
+                disabled={busy}
+                onClick={() => void submit(answers)}
+                size="lg"
+                className="mt-7 w-full"
+              >
+                {busy ? "Setting up…" : "Activate my routine"}
+                <ArrowRight className="ml-auto size-4" />
+              </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </main>
+  );
+}
