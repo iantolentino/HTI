@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Check, ChevronDown, Layers3, Plus, Search, Settings2, Sparkles } from 'lucide-react';
+import { Check, ChevronDown, Layers3, Plus, RefreshCw, Search, Settings2, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -17,13 +17,14 @@ const UNITS:{value:Unit;label:string}[] = [{value:'REPS',label:'Reps'},{value:'M
 
 export default function Library() {
   const [data,setData] = useState<LibraryData|null>(null);
+  const [loadError,setLoadError] = useState(false);
   const [query,setQuery] = useState('');
   const [filter,setFilter] = useState('ALL');
   const [category,setCategory] = useState('ALL');
   const [notice,setNotice] = useState('');
   const [customizingId,setCustomizingId] = useState<string|null>(null);
   const [options,setOptions] = useState<Record<string,HabitOptions>>({});
-  const load = async () => { const response=await fetch('/api/habits'); if(response.ok) setData(await response.json() as LibraryData); };
+  const load = async () => { try { const response=await fetch('/api/habits'); if(!response.ok) throw new Error('library'); setData(await response.json() as LibraryData); setLoadError(false); } catch { setLoadError(true); } };
   useEffect(() => { void load(); }, []);
   const items=useMemo(() => data?.tasks.filter(task => (filter==='ALL'||task.difficultyTag===filter)&&(category==='ALL'||task.category===category)&&task.name.toLowerCase().includes(query.toLowerCase()))??[],[data,filter,category,query]);
   const updateOptions=(taskId:string, patch:Partial<HabitOptions>) => setOptions(current=>({...current,[taskId]:{...current[taskId],...patch}}));
@@ -39,7 +40,7 @@ export default function Library() {
   }
   async function restore(userTaskId:string){const response=await fetch('/api/habits',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({userTaskId,action:'restore'})});setNotice(response.ok?'Habit restored to your routine.':'Could not restore this habit.');if(response.ok)await load()}
 
-  if(!data)return <main className="shell"><Card className="animate-pulse p-6"><div className="h-8 w-56 rounded bg-[rgb(var(--primary)/.12)]"/><div className="mt-5 h-12 rounded bg-[rgb(var(--primary)/.08)]"/></Card><Nav/></main>;
+  if(!data)return <main className="shell">{loadError?<Card className="p-6 text-center"><p className="eyebrow">LIBRARY PAUSED</p><h1 className="mt-3 text-2xl font-black">Your habit shelf needs another try.</h1><p className="mt-2 text-sm text-muted-foreground">Your routine is safe. Reload the library to continue.</p><button type="button" className="btn btn-primary mt-5 w-full" onClick={()=>void load()}><RefreshCw className="size-4"/>Try again</button></Card>:<Card className="animate-pulse p-6"><div className="h-8 w-56 rounded bg-[rgb(var(--primary)/.12)]"/><div className="mt-5 h-12 rounded bg-[rgb(var(--primary)/.08)]"/></Card>}<Nav/></main>;
   return <main className="shell">
     <header className="mb-6"><p className="eyebrow">BUILD YOUR ROUTINE</p><h1 className="mt-2 text-3xl font-black tracking-tight">Habit library</h1><p className="mt-2 text-[rgb(var(--muted))]">Choose habits that fit the life you actually live.</p></header>
     <div className="relative"><Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[rgb(var(--muted))]"/><input aria-label="Search habits" value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search habits" className="h-12 w-full rounded-md border-2 border-border bg-[rgb(var(--surface))] pl-12 pr-4 shadow-[2px_2px_0_rgb(var(--shadow))] outline-none transition focus:bg-[rgb(var(--muted-bg))]"/></div>

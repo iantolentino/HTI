@@ -16,6 +16,8 @@ Registration is open. Passwords are bcrypt hashed and credentials login is handl
 
 Run `npm test` for the game engine and component suite. Run `npx playwright install && npm run test:e2e` for the mobile browser journey. `npm run build` runs the production build. The test suite covers EXP/target/regression/vault/timezone logic and core UI interactions. Before deployment, run Prisma migration and seed against a fresh Neon project.
 
+GitHub Actions runs lint, unit/component tests, Prisma generation, and the production build on every push and pull request. To enable the persisted mobile journey in CI, add `E2E_DATABASE_URL`, optional `E2E_DIRECT_URL`, and `NEXTAUTH_SECRET` repository secrets pointing to a disposable seeded Neon branch. The Playwright config requires `E2E_RUN=1` and never uses the normal production database implicitly.
+
 ## Deploying to Vercel
 
 Import the GitHub repository into Vercel, add `DATABASE_URL`, `DIRECT_URL`, `NEXTAUTH_SECRET`, and `NEXTAUTH_URL`, then deploy. The supplied `vercel.json` generates Prisma before the production build. Neon’s pooled connection must remain in `DATABASE_URL` for serverless traffic.

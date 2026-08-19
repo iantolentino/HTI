@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Download, TrendingUp } from 'lucide-react'
+import { Download, RefreshCw, TrendingUp } from 'lucide-react'
 import { LineChart, Line, Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Heatmap } from '@/components/Heatmap'
 import { Nav } from '@/components/Nav'
@@ -28,12 +28,13 @@ const labels: Record<string, string> = {
 
 export default function Analytics() {
   const [data, setData] = useState<AnalyticsData | null>(null)
+  const [loadError, setLoadError] = useState(false)
 
   useEffect(() => {
-    fetch('/api/analytics').then(response => response.ok ? response.json() : null).then(setData)
+    fetch('/api/analytics').then(async response => { if (!response.ok) throw new Error('analytics'); return await response.json() as AnalyticsData }).then(value => { setData(value); setLoadError(false) }).catch(() => setLoadError(true))
   }, [])
 
-  if (!data) return <main className="shell"><Card className="h-64 animate-pulse" /><Nav /></main>
+  if (!data) return <main className="shell">{loadError?<Card className="p-6 text-center"><p className="eyebrow">PROGRESS PAUSED</p><h1 className="mt-3 text-2xl font-black">Your insights need another try.</h1><p className="mt-2 text-sm text-muted-foreground">Nothing was changed. Refresh this page when you’re ready.</p><button type="button" className="btn btn-primary mt-5 w-full" onClick={()=>window.location.reload()}><RefreshCw className="size-4"/>Try again</button></Card>:<Card className="h-64 animate-pulse" />}<Nav /></main>
 
   const max = Math.max(...Object.values(data.categoryExp), 1)
   const radar = Object.entries(data.categoryExp).map(([category, exp]) => ({ category: labels[category], value: Math.round(exp / max * 100) }))
