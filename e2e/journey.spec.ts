@@ -1,7 +1,30 @@
 import { expect, Page, test } from '@playwright/test'
+import { PrismaClient } from '@prisma/client'
 
 const canRunPersistedJourney = process.env.E2E_RUN === '1' && Boolean(process.env.E2E_DATABASE_URL)
 const password = 'SecurePass123!'
+const prisma = new PrismaClient()
+
+async function seedHistoricalActivity(email: string) {
+  const user = await prisma.user.findUnique({ where: { email }, include: { tasks: true } })
+  if (!user || user.tasks.length < 2) throw new Error('E2E user was not provisioned with starter tasks')
+  const taskIds = user.tasks.slice(0, 4).map(task => task.id)
+  const now = new Date()
+  const rows = Array.from({ length: 14 }, (_, offset) => {
+    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - offset, 12))
+    return taskIds.slice(0, (offset % taskIds.length) + 1).map((taskId, index) => ({
+      userId: user.id,
+      taskId,
+      date,
+      expEarned: 15 + ((13 - offset) * 4) + index,
+      targetAtCompletion: null,
+      note: offset === 0 ? 'E2E historical activity' : null,
+    }))
+  }).flat()
+  await prisma.dailyLog.createMany({ data: rows, skipDuplicates: true })
+}
+
+test.afterAll(async () => { await prisma.$disconnect() })
 
 async function completeOnboarding(page: Page) {
   await expect(page.getByText('What do you want to improve most?')).toBeVisible()
@@ -105,9 +128,19 @@ test.describe('isolated Neon mobile journey', () => {
     await expect(page.getByRole('heading', { name: 'Progress that adds up' })).toBeVisible()
     await expect(page.getByText('Contribution year')).toBeVisible()
     await expect(page.locator('[aria-label^="Contribution graph"]')).toBeVisible()
+    await seedHistoricalActivity(email)
+    await page.reload()
+    await expect(page.getByText(/wins recorded/)).toContainText('wins recorded')
+    await expect(page.getByText(/Your best day was/)).toBeVisible()
+    const heatCells = page.locator('.heat')
+    const heatClasses = await heatCells.evaluateAll(cells => [...new Set(cells.map(cell => cell.className))])
+    expect(heatClasses.length).toBeGreaterThan(1)
     const downloadPromise = page.waitForEvent('download')
     await page.getByRole('link', { name: 'Export JSON' }).click()
     expect((await downloadPromise).suggestedFilename()).toBe('levelup-daily-data.json')
+    const csvDownload = page.waitForEvent('download')
+    await page.getByRole('link', { name: 'Export CSV' }).click()
+    expect((await csvDownload).suggestedFilename()).toBe('levelup-daily-data.csv')
 
     await page.goto('/settings')
     const darkMode = page.getByLabel('Dark mode')
