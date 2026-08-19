@@ -12,6 +12,7 @@ Last verified: 2026-08-19
 - Replaced the browser-prompt account deletion flow with an accessible typed-confirmation dialog; added password visibility, confirmation, strength feedback, timezone validation, and public-profile copy/share actions.
 - Public profile API now returns only aggregate heatmap buckets (never raw DailyLog rows or notes).
 - Mobile polish pass adds swipe-remove Undo, visible retry states for Dashboard/Analytics/Library/Settings, and a GitHub Actions quality workflow with opt-in isolated Neon E2E.
+- Analytics audit fixes monthly EXP buckets to use the account timezone and lazy-loads Recharts; the Analytics route’s initial payload dropped from roughly 255 KB to 151 KB.
 
 - Fixed theme application race conditions: Settings now updates the visible theme immediately after a successful save and emits a single root-level theme event. The root synchronizer listens for that event and restores the saved mode and selected palette after reload or sign-in.
 - The default Concrete and Concrete Dark tokens remain the source of truth. The default palette resolves to the exact documented light and dark RGB values; selected reward palettes update the accent token only, without introducing a second hard-coded theme.
@@ -28,7 +29,7 @@ The code-level checks below passed after this audit. Full persisted user-journey
 ## Automated checks
 
 - `npm run lint` — passed with no ESLint warnings or errors.
-- `npm run test` — passed (23 Vitest tests: game formulas, streak logic, onboarding and core API route validation, and React components).
+- `npm run test` — passed (24 Vitest tests: game formulas, timezone-aware monthly analytics buckets, streak logic, onboarding and core API route validation, and React components).
 - `npm run build` — passed (Next.js production build, strict TypeScript checking, and static generation).
 - `prisma validate` — passed against the Prisma schema with a non-production placeholder connection string; the migration SQL also diffs cleanly from an empty schema.
 - `npm run test:e2e` — the mobile landing smoke journey passed. The persisted registration journey is intentionally skipped unless `DATABASE_URL` points to an isolated Neon test database.

@@ -1,13 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Download, RefreshCw, TrendingUp } from 'lucide-react'
-import { LineChart, Line, Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import dynamic from 'next/dynamic'
+import { Download, RefreshCw } from 'lucide-react'
 import { Heatmap } from '@/components/Heatmap'
 import { Nav } from '@/components/Nav'
 import { StreakStats } from '@/components/StreakStats'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+
+const AnalyticsCharts = dynamic(() => import('@/components/AnalyticsCharts'), { ssr: false, loading: () => <Card className="mt-4 h-80 animate-pulse" /> })
 
 type AnalyticsData = {
   values: number[]
@@ -66,15 +68,7 @@ export default function Analytics() {
       </CardContent>
     </Card>
 
-    <Card className="mt-4">
-      <CardHeader className="flex-row items-center gap-2"><TrendingUp className="size-5 text-brand" /><div><h2 className="font-black">Monthly EXP trend</h2><p className="text-sm text-muted-foreground">Your recent rhythm at a glance.</p></div></CardHeader>
-      <CardContent><div className="h-52 w-full"><ResponsiveContainer width="100%" height="100%"><LineChart data={data.monthlyExp}><XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={11} /><YAxis hide /><Tooltip contentStyle={{ borderRadius: 0, border: '2px solid rgb(var(--border))', background: 'rgb(var(--card))' }} /><Line type="monotone" dataKey="exp" stroke="rgb(var(--accent))" strokeWidth={3} dot={{ r: 3 }} /></LineChart></ResponsiveContainer></div></CardContent>
-    </Card>
-
-    <Card className="mt-4">
-      <CardHeader><h2 className="font-black">Category balance</h2></CardHeader>
-      <CardContent><div className="h-64"><ResponsiveContainer width="100%" height="100%"><RadarChart data={radar}><PolarGrid /><PolarAngleAxis dataKey="category" tick={{ fontSize: 11 }} /><Radar dataKey="value" stroke="rgb(var(--accent))" fill="rgb(var(--accent))" fillOpacity={.28} /></RadarChart></ResponsiveContainer></div></CardContent>
-    </Card>
+    <AnalyticsCharts monthlyExp={data.monthlyExp} radar={radar} />
 
     <Card className="mt-4">
       <CardHeader><h2 className="font-black">Category mastery</h2></CardHeader>
