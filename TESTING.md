@@ -51,6 +51,14 @@ Verified against `https://hti-swart.vercel.app` after the `9c41e76` deployment:
 - Mobile viewport audit at 375px found no horizontal overflow on Dashboard, Library, Analytics, Palettes, Leaderboard, or Settings.
 - Browser console had no error-level messages during the smoke flow.
 
+### Disposable account deletion smoke (2026-08-19)
+
+- Created a generated disposable account on the deployed production app, completed onboarding, and confirmed the account reached Dashboard with seeded habits.
+- Opened Profile & Settings, entered the required `DELETE` confirmation, and submitted account deletion.
+- The app redirected to the landing page after deletion.
+- A subsequent login attempt with the deleted generated credentials returned the expected invalid-credentials message, confirming the account was no longer usable.
+- No existing user account or production habit data was used for this destructive check.
+
 ## Deployment
 
 Vercel builds run `prisma migrate deploy`, `prisma generate`, `prisma db seed`, and `next build`. The seed is idempotent and ensures a fresh Neon database has the task, palette, badge, and habit-stack catalog before users register.
