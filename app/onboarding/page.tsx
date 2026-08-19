@@ -67,8 +67,8 @@ export default function Onboarding() {
             <>
               <div className="mt-4 h-2 overflow-hidden border-2 border-border bg-card">
                 <div
-                  className="h-full bg-accent transition-all"
-                  style={{ width: `${((step + 1) / questions.length) * 100}%` }}
+                  className="h-full origin-left bg-accent transition-transform duration-200 will-change-transform"
+                  style={{ transform: `scaleX(${(step + 1) / questions.length})` }}
                 />
               </div>
               <h1 className="mt-7 text-3xl font-black tracking-tight">
